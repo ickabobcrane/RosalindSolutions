@@ -18,6 +18,14 @@ instance Show Nucleotide where
 type NucleicAcid = [Nucleotide]
 
 newtype Codon = Codon (Nucleotide, Nucleotide, Nucleotide) deriving (Show,Eq,Ord)
+        
+newtype AminoAcid = AminoAcid Char deriving (Eq, Show)
+
+type Polypeptide = [AminoAcid]
+
+type ProtienString = [AminoAcid]
+     
+data Encoding = Start | Stop | Encoding (Codon -> AminoAcid)
 
 rnaBases :: Set Nucleotide
 rnaBases = fromList [Adenine, Guanine, Cytosine, Uracil]
@@ -34,9 +42,12 @@ nucleotide  c | c == 'A' = Adenine
               | otherwise = undefined
 
 ------------------Parsers-------------------
+dnaNucleotide :: Parser Char
+dnaNucleotide = oneOf . Prelude.concat . Prelude.map show $ toList dnaBases
+              
 rnaNucleotide :: Parser Char
 rnaNucleotide = oneOf . Prelude.concat . Prelude.map show $ toList rnaBases
-              
+
 rnaCodon :: Parser Codon              
 rnaCodon = do
            c1:c2:c3:[] <- sequence $ replicate 3 rnaNucleotide'
@@ -44,6 +55,10 @@ rnaCodon = do
                   where
                   rnaNucleotide' :: Parser Nucleotide
                   rnaNucleotide'  = liftM nucleotide rnaNucleotide
+
+              
+              
+         
 
 -- Parse an association "XXX Y"
 relation :: Parser (Codon, String)   
@@ -58,14 +73,16 @@ relation = do
          return (codon, encodedValue)
          where
                 stop :: Parser String
-                stop = string "Stop"
+                stop = try(string "Stop") >> return "\n"
                 aminoAbreviation :: Parser String
                 aminoAbreviation = do
                                  charRep <- letter
                                  return (charRep:[])
          
 
-                         
+encodings :: Parser [(Codon, String)]
+encodings = relation `sepEndBy` spaces 
+
                        
                          
 
